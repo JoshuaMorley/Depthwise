@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="distance_labels">
+        <item>Nautical miles</item>
+        <item>Kilometres</item>
+    </string-array>
+    <string-array name="distance_values">
+        <item>nm</item>
+        <item>km</item>
+    </string-array>
+
+    <string-array name="speed_labels">
+        <item>Knots</item>
+        <item>km/h</item>
+    </string-array>
+    <string-array name="speed_values">
+        <item>kn</item>
+        <item>kmh</item>
+    </string-array>
+
+    <string-array name="look_ahead_labels">
+        <item>Current position only</item>
+        <item>30 seconds</item>
+        <item>1 minute</item>
+        <item>2 minutes</item>
+        <item>5 minutes</item>
+    </string-array>
+    <string-array name="look_ahead_values">
+        <item>0</item>
+        <item>0.5</item>
+        <item>1</item>
+        <item>2</item>
+        <item>5</item>
+    </string-array>
+
+    <string-array name="track_mode_labels">
+        <item>Auto: always record, new track after a break</item>
+        <item>Manual: record button</item>
+        <item>Off</item>
+    </string-array>
+    <string-array name="track_mode_values">
+        <item>auto</item>
+        <item>manual</item>
+        <item>off</item>
+    </string-array>
+
+    <string-array name="auto_gap_labels">
+        <item>10 minutes</item>
+        <item>30 minutes</item>
+        <item>1 hour</item>
+        <item>3 hours</item>
+        <item>12 hours</item>
+    </string-array>
+    <string-array name="auto_gap_values">
+        <item>10</item>
+        <item>30</item>
+        <item>60</item>
+        <item>180</item>
+        <item>720</item>
+    </string-array>
+
+    <string-array name="auto_jump_labels">
+        <item>500 m</item>
+        <item>1 nm</item>
+        <item>2 nm</item>
+        <item>5 nm</item>
+    </string-array>
+    <string-array name="auto_jump_values">
+        <item>500</item>
+        <item>1852</item>
+        <item>3704</item>
+        <item>9260</item>
+    </string-array>
+
+    <string-array name="radius_labels">
+        <item>25 m</item>
+        <item>50 m</item>
+        <item>100 m</item>
+        <item>200 m</item>
+    </string-array>
+    <string-array name="radius_values">
+        <item>25</item>
+        <item>50</item>
+        <item>100</item>
+        <item>200</item>
+    </string-array>
+
+    <string-array name="interval_labels">
+        <item>1 second</item>
+        <item>2 seconds</item>
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>30 seconds</item>
+    </string-array>
+    <string-array name="interval_values">
+        <item>1</item>
+        <item>2</item>
+        <item>5</item>
+        <item>10</item>
+        <item>30</item>
+    </string-array>
+
+    <string-array name="min_distance_labels">
+        <item>Any</item>
+        <item>2 m</item>
+        <item>5 m</item>
+        <item>10 m</item>
+        <item>25 m</item>
+    </string-array>
+    <string-array name="min_distance_values">
+        <item>0</item>
+        <item>2</item>
+        <item>5</item>
+        <item>10</item>
+        <item>25</item>
+    </string-array>
+</resources>

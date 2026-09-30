@@ -1,0 +1,11 @@
+{
+  "regions": [
+    { "name": "hauraki", "title": "Hauraki Gulf and Waitemata", "bbox": [174.55, -37.25, 175.95, -35.75] },
+    { "name": "bay_of_islands", "title": "Bay of Islands", "bbox": [173.95, -35.40, 174.40, -35.05] },
+    { "name": "tauranga", "title": "Tauranga and western Bay of Plenty", "bbox": [175.96, -37.80, 176.45, -37.35] },
+    { "name": "wellington", "title": "Wellington Harbour and approaches", "bbox": [174.60, -41.45, 175.05, -41.10] },
+    { "name": "marlborough", "title": "Marlborough Sounds", "bbox": [173.70, -41.35, 174.40, -40.70] },
+    { "name": "lyttelton", "title": "Lyttelton Harbour and Pegasus Bay south", "bbox": [172.55, -43.75, 172.95, -43.50] },
+    { "name": "otago", "title": "Otago Harbour", "bbox": [170.45, -45.95, 170.80, -45.75] }
+  ]
+}

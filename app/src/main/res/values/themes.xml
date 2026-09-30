@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Light-only theme to match the light chart style. -->
+    <style name="Theme.NZLINZ" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/ocean_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/ocean_container</item>
+        <item name="colorOnPrimaryContainer">@color/ocean_on_container</item>
+        <item name="colorSecondary">@color/ocean_secondary</item>
+        <item name="colorSecondaryContainer">@color/ocean_secondary_container</item>
+        <item name="android:colorBackground">@color/surface</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+    </style>
+
+    <!-- Settings: full screen on phones; values-sw600dp turns it into a popup on tablets. -->
+    <style name="Theme.NZLINZ.Settings" parent="Theme.NZLINZ" />
+</resources>

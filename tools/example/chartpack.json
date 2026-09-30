@@ -1,0 +1,928 @@
+{
+ "format": 1,
+ "id": "hauraki",
+ "title": "Hauraki Gulf and Waitemata",
+ "attribution": "Contains data sourced from the LINZ Data Service licensed for reuse under CC BY 4.0. Not for navigation.",
+ "groups": [
+  {
+   "id": "background",
+   "title": "Chart"
+  },
+  {
+   "id": "channels",
+   "title": "Channels & areas"
+  },
+  {
+   "id": "soundings",
+   "title": "Soundings"
+  },
+  {
+   "id": "marks",
+   "title": "Marks & lights"
+  }
+ ],
+ "sources": {
+  "chart": {
+   "type": "raster",
+   "url": "hauraki_gulf_chart_bg.pmtiles",
+   "tileSize": 512
+  },
+  "channels": {
+   "type": "vector",
+   "url": "channels.pmtiles"
+  },
+  "soundings": {
+   "type": "vector",
+   "url": "soundings.pmtiles"
+  },
+  "marks": {
+   "type": "vector",
+   "url": "marks.pmtiles"
+  }
+ },
+ "layers": [
+  {
+   "id": "chart",
+   "type": "raster",
+   "source": "chart",
+   "group": "background",
+   "paint": {
+    "raster-opacity": 1,
+    "raster-resampling": "linear",
+    "raster-fade-duration": 0
+   }
+  },
+  {
+   "id": "limit-areas",
+   "type": "line",
+   "filter": [
+    "in",
+    [
+     "get",
+     "kind"
+    ],
+    [
+     "literal",
+     [
+      "cable_area",
+      "pipeline_area",
+      "restricted",
+      "anchorage",
+      "dumping",
+      "marine_farm",
+      "military",
+      "caution"
+     ]
+    ]
+   ],
+   "paint": {
+    "line-color": "#c800ff",
+    "line-width": 1.2,
+    "line-dasharray": [
+     5,
+     2,
+     1,
+     2
+    ]
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "cables",
+   "type": "line",
+   "filter": [
+    "in",
+    [
+     "get",
+     "kind"
+    ],
+    [
+     "literal",
+     [
+      "cable",
+      "pipeline"
+     ]
+    ]
+   ],
+   "paint": {
+    "line-color": "#c800ff",
+    "line-width": 1,
+    "line-opacity": 0.8
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "dredged-fill",
+   "type": "fill",
+   "filter": [
+    "==",
+    [
+     "get",
+     "kind"
+    ],
+    "dredged"
+   ],
+   "paint": {
+    "fill-color": "#8a8a8a",
+    "fill-opacity": 0.12
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "dredged-line",
+   "type": "line",
+   "filter": [
+    "==",
+    [
+     "get",
+     "kind"
+    ],
+    "dredged"
+   ],
+   "paint": {
+    "line-color": "#555555",
+    "line-width": 1,
+    "line-dasharray": [
+     4,
+     2
+    ]
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "tss",
+   "type": "fill",
+   "filter": [
+    "in",
+    [
+     "get",
+     "kind"
+    ],
+    [
+     "literal",
+     [
+      "tss_lane",
+      "tss_zone",
+      "precautionary"
+     ]
+    ]
+   ],
+   "paint": {
+    "fill-color": "#c800ff",
+    "fill-opacity": 0.08,
+    "fill-outline-color": "#c800ff"
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "fairway",
+   "type": "line",
+   "filter": [
+    "in",
+    [
+     "get",
+     "kind"
+    ],
+    [
+     "literal",
+     [
+      "fairway",
+      "tss_boundary",
+      "deepwater"
+     ]
+    ]
+   ],
+   "paint": {
+    "line-color": "#c800ff",
+    "line-width": 1.2,
+    "line-dasharray": [
+     6,
+     3
+    ]
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "ferry",
+   "type": "line",
+   "filter": [
+    "==",
+    [
+     "get",
+     "kind"
+    ],
+    "ferry"
+   ],
+   "paint": {
+    "line-color": "#c800ff",
+    "line-width": 1.5,
+    "line-dasharray": [
+     2,
+     2
+    ]
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "tracks",
+   "type": "line",
+   "filter": [
+    "in",
+    [
+     "get",
+     "kind"
+    ],
+    [
+     "literal",
+     [
+      "track",
+      "route"
+     ]
+    ]
+   ],
+   "paint": {
+    "line-color": "#101010",
+    "line-width": 1.2
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "navlines",
+   "type": "line",
+   "filter": [
+    "==",
+    [
+     "get",
+     "kind"
+    ],
+    "navline"
+   ],
+   "paint": {
+    "line-color": "#101010",
+    "line-width": 1,
+    "line-dasharray": [
+     5,
+     3
+    ]
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "line-labels",
+   "type": "symbol",
+   "filter": [
+    "all",
+    [
+     "!=",
+     [
+      "get",
+      "label"
+     ],
+     ""
+    ],
+    [
+     "in",
+     [
+      "get",
+      "kind"
+     ],
+     [
+      "literal",
+      [
+       "ferry",
+       "track",
+       "route",
+       "navline",
+       "fairway"
+      ]
+     ]
+    ]
+   ],
+   "layout": {
+    "symbol-placement": "line",
+    "symbol-spacing": 400,
+    "text-field": [
+     "step",
+     [
+      "zoom"
+     ],
+     "",
+     12,
+     [
+      "get",
+      "label"
+     ]
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": 10,
+    "text-keep-upright": true,
+    "text-offset": [
+     0,
+     -0.7
+    ]
+   },
+   "paint": {
+    "text-color": [
+     "match",
+     [
+      "get",
+      "kind"
+     ],
+     [
+      "ferry",
+      "fairway"
+     ],
+     "#a000cc",
+     "#101010"
+    ],
+    "text-halo-color": "rgba(255,255,255,0.8)",
+    "text-halo-width": 1
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "limit-labels",
+   "type": "symbol",
+   "filter": [
+    "all",
+    [
+     "==",
+     [
+      "get",
+      "label_point"
+     ],
+     true
+    ],
+    [
+     "in",
+     [
+      "get",
+      "kind"
+     ],
+     [
+      "literal",
+      [
+       "cable_area",
+       "pipeline_area",
+       "restricted",
+       "anchorage",
+       "dumping",
+       "marine_farm",
+       "military",
+       "caution"
+      ]
+     ]
+    ]
+   ],
+   "layout": {
+    "text-field": [
+     "step",
+     [
+      "zoom"
+     ],
+     "",
+     13,
+     [
+      "get",
+      "label"
+     ]
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": 11,
+    "text-max-width": 10,
+    "text-rotation-alignment": "viewport",
+    "text-optional": true
+   },
+   "paint": {
+    "text-color": "#c800ff",
+    "text-halo-color": "rgba(255,255,255,0.8)",
+    "text-halo-width": 1
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "dredged-labels",
+   "type": "symbol",
+   "filter": [
+    "all",
+    [
+     "==",
+     [
+      "get",
+      "label_point"
+     ],
+     true
+    ],
+    [
+     "==",
+     [
+      "get",
+      "kind"
+     ],
+     "dredged"
+    ]
+   ],
+   "layout": {
+    "text-field": [
+     "step",
+     [
+      "zoom"
+     ],
+     "",
+     14,
+     [
+      "get",
+      "label"
+     ]
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": 10,
+    "text-rotation-alignment": "viewport"
+   },
+   "paint": {
+    "text-color": "#555555",
+    "text-halo-color": "rgba(255,255,255,0.8)",
+    "text-halo-width": 1
+   },
+   "source": "channels",
+   "sourceLayer": "channels",
+   "group": "channels"
+  },
+  {
+   "id": "depths",
+   "type": "symbol",
+   "filter": [
+    "!",
+    [
+     "get",
+     "dry"
+    ]
+   ],
+   "layout": {
+    "text-field": [
+     "format",
+     [
+      "get",
+      "d_int"
+     ],
+     {},
+     [
+      "get",
+      "d_dec"
+     ],
+     {
+      "font-scale": 0.72
+     }
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     11,
+     10,
+     14,
+     12,
+     17,
+     14
+    ],
+    "text-rotation-alignment": "viewport",
+    "text-pitch-alignment": "viewport",
+    "text-allow-overlap": false,
+    "text-padding": 1,
+    "symbol-sort-key": [
+     "get",
+     "sort"
+    ]
+   },
+   "paint": {
+    "text-color": "#101010"
+   },
+   "source": "soundings",
+   "sourceLayer": "soundings",
+   "group": "soundings"
+  },
+  {
+   "id": "drying",
+   "type": "symbol",
+   "filter": [
+    "get",
+    "dry"
+   ],
+   "layout": {
+    "text-field": [
+     "format",
+     [
+      "get",
+      "d_int"
+     ],
+     {},
+     [
+      "get",
+      "d_dec"
+     ],
+     {
+      "font-scale": 0.72
+     }
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     11,
+     10,
+     14,
+     12,
+     17,
+     14
+    ],
+    "text-rotation-alignment": "viewport",
+    "text-pitch-alignment": "viewport",
+    "text-allow-overlap": false,
+    "text-padding": 1,
+    "symbol-sort-key": [
+     "get",
+     "sort"
+    ]
+   },
+   "paint": {
+    "text-color": "#1f5e2e"
+   },
+   "source": "soundings",
+   "sourceLayer": "soundings",
+   "group": "soundings"
+  },
+  {
+   "id": "marks",
+   "type": "symbol",
+   "sprite": "marks",
+   "filter": [
+    "!=",
+    [
+     "get",
+     "kind"
+    ],
+    "light"
+   ],
+   "layout": {
+    "icon-image": [
+     "get",
+     "icon"
+    ],
+    "icon-size": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     10,
+     0.6,
+     14,
+     0.9,
+     17,
+     1.1
+    ],
+    "icon-anchor": [
+     "match",
+     [
+      "get",
+      "kind"
+     ],
+     [
+      "buoy",
+      "beacon"
+     ],
+     "bottom",
+     "center"
+    ],
+    "icon-rotation-alignment": "viewport",
+    "icon-allow-overlap": true,
+    "symbol-sort-key": [
+     "get",
+     "sort"
+    ]
+   },
+   "source": "marks",
+   "sourceLayer": "marks",
+   "group": "marks"
+  },
+  {
+   "id": "lights",
+   "type": "symbol",
+   "sprite": "marks",
+   "filter": [
+    "==",
+    [
+     "get",
+     "kind"
+    ],
+    "light"
+   ],
+   "layout": {
+    "icon-image": [
+     "get",
+     "icon"
+    ],
+    "icon-size": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     10,
+     0.6,
+     14,
+     0.9,
+     17,
+     1.1
+    ],
+    "icon-rotation-alignment": "viewport",
+    "icon-allow-overlap": true,
+    "text-field": [
+     "step",
+     [
+      "zoom"
+     ],
+     "",
+     12,
+     [
+      "get",
+      "label"
+     ],
+     15,
+     [
+      "get",
+      "label_full"
+     ]
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": 10,
+    "text-anchor": "left",
+    "text-offset": [
+     1.1,
+     0.4
+    ],
+    "text-optional": true,
+    "text-rotation-alignment": "viewport"
+   },
+   "paint": {
+    "text-color": "#101010",
+    "text-halo-color": "rgba(255,255,255,0.8)",
+    "text-halo-width": 1
+   },
+   "source": "marks",
+   "sourceLayer": "marks",
+   "group": "marks"
+  },
+  {
+   "id": "danger-depths",
+   "type": "symbol",
+   "filter": [
+    "!=",
+    [
+     "get",
+     "d_int"
+    ],
+    ""
+   ],
+   "layout": {
+    "text-field": [
+     "step",
+     [
+      "zoom"
+     ],
+     "",
+     13,
+     [
+      "format",
+      [
+       "get",
+       "d_int"
+      ],
+      {},
+      [
+       "get",
+       "d_dec"
+      ],
+      {
+       "font-scale": 0.72
+      }
+     ]
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": 10,
+    "text-offset": [
+     0,
+     1.2
+    ],
+    "text-rotation-alignment": "viewport"
+   },
+   "paint": {
+    "text-color": "#101010"
+   },
+   "source": "marks",
+   "sourceLayer": "marks",
+   "group": "marks"
+  },
+  {
+   "id": "names",
+   "type": "symbol",
+   "filter": [
+    "!=",
+    [
+     "get",
+     "name"
+    ],
+    ""
+   ],
+   "layout": {
+    "text-field": [
+     "step",
+     [
+      "zoom"
+     ],
+     "",
+     14,
+     [
+      "get",
+      "name"
+     ]
+    ],
+    "text-font": [
+     "Noto Sans Regular"
+    ],
+    "text-size": 10,
+    "text-anchor": "right",
+    "text-offset": [
+     -1.1,
+     0
+    ],
+    "text-optional": true,
+    "text-rotation-alignment": "viewport"
+   },
+   "paint": {
+    "text-color": "#333333",
+    "text-halo-color": "rgba(255,255,255,0.8)",
+    "text-halo-width": 1
+   },
+   "source": "marks",
+   "sourceLayer": "marks",
+   "group": "marks"
+  }
+ ],
+ "alarms": [
+  {
+   "source": "soundings",
+   "sourceLayer": "soundings",
+   "geometry": "point",
+   "depthField": "depth",
+   "label": "sounding"
+  },
+  {
+   "source": "marks",
+   "sourceLayer": "marks",
+   "geometry": "point",
+   "depthField": "d_int",
+   "depthDecimalField": "d_dec",
+   "filter": [
+    "in",
+    [
+     "get",
+     "kind"
+    ],
+    [
+     "literal",
+     [
+      "rock",
+      "wreck",
+      "obstruction"
+     ]
+    ]
+   ],
+   "dangerWhenNoDepth": true,
+   "label": "{kind}"
+  }
+ ],
+ "inspect": [
+  {
+   "layers": [
+    "limit-areas",
+    "cables",
+    "dredged-fill",
+    "dredged-line",
+    "tss",
+    "fairway",
+    "ferry",
+    "tracks",
+    "navlines",
+    "line-labels",
+    "limit-labels",
+    "dredged-labels"
+   ],
+   "title": [
+    "{label}",
+    "{name}",
+    "{kind}"
+   ],
+   "fields": {
+    "kind": "Type",
+    "name": "Name",
+    "orient": "Direction"
+   }
+  },
+  {
+   "layers": [
+    "depths",
+    "drying"
+   ],
+   "title": "Sounding {depth} m",
+   "fields": {},
+   "hide": [
+    "d_int",
+    "d_dec",
+    "sort"
+   ]
+  },
+  {
+   "layers": [
+    "marks",
+    "lights",
+    "danger-depths",
+    "names"
+   ],
+   "title": [
+    "{name}",
+    "{kind}"
+   ],
+   "subtitle": "{label_full}",
+   "fields": {
+    "kind": "Type",
+    "icon": "Symbol",
+    "label": "Light"
+   },
+   "hide": [
+    "sort",
+    "d_int",
+    "d_dec"
+   ]
+  }
+ ],
+ "bounds": [
+  174.55,
+  -37.25,
+  175.95,
+  -35.75
+ ],
+ "sprites": {
+  "marks": "sprites/marks"
+ }
+}

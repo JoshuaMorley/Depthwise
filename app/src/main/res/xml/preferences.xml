@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Boat">
+
+        <EditTextPreference app:iconSpaceReserved="false"
+            app:key="draft_m"
+            app:title="Draft (m)"
+            app:dialogMessage="Depth of the keel below the waterline, in metres."
+            app:useSimpleSummaryProvider="false" />
+
+        <EditTextPreference app:iconSpaceReserved="false"
+            app:defaultValue="0.5"
+            app:key="safety_margin_m"
+            app:title="Safety margin (m)"
+            app:dialogMessage="Extra clearance under the keel, in metres." />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="show_shallow"
+            app:summary="Shade charted areas shallower than draft + margin in red"
+            app:title="Highlight shallow water" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Shallow-water alarm">
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="shallow_alarm"
+            app:summary="Warn when over, or heading into, charted water shallower than draft + margin"
+            app:title="Shallow-water alarm" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="1"
+            app:dependency="shallow_alarm"
+            app:entries="@array/look_ahead_labels"
+            app:entryValues="@array/look_ahead_values"
+            app:key="look_ahead_min"
+            app:title="Look ahead"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="50"
+            app:dependency="shallow_alarm"
+            app:entries="@array/radius_labels"
+            app:entryValues="@array/radius_values"
+            app:key="alarm_radius_m"
+            app:title="Warn within"
+            app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:dependency="shallow_alarm"
+            app:key="alarm_vibrate"
+            app:title="Vibrate" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:dependency="shallow_alarm"
+            app:key="alarm_sound"
+            app:title="Sound" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Display">
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="keep_screen_on"
+            app:summary="Stop the screen turning off while the map is open"
+            app:title="Keep screen on" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="false"
+            app:key="course_up"
+            app:summary="Rotate the map to your course while following"
+            app:title="Course up" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="depth_labels"
+            app:summary="Sounding and contour numbers (needs internet the first time for fonts)"
+            app:title="Depth labels" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Instruments">
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="show_sog"
+            app:summary="Speed over ground"
+            app:title="SOG" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="show_cog"
+            app:summary="Course over ground (true)"
+            app:title="COG" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="show_depth"
+            app:summary="Nearest charted sounding to your position (chart datum, no tide). Red when shallower than draft + margin."
+            app:title="Depth" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Units">
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="nm"
+            app:entries="@array/distance_labels"
+            app:entryValues="@array/distance_values"
+            app:key="distance_units"
+            app:title="Distance"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="kn"
+            app:entries="@array/speed_labels"
+            app:entryValues="@array/speed_values"
+            app:key="speed_units"
+            app:title="Speed"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Track recording">
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="manual"
+            app:entries="@array/track_mode_labels"
+            app:entryValues="@array/track_mode_values"
+            app:key="track_mode"
+            app:title="Mode"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="30"
+            app:entries="@array/auto_gap_labels"
+            app:entryValues="@array/auto_gap_values"
+            app:key="auto_gap_min"
+            app:title="New track after a break of"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="1852"
+            app:entries="@array/auto_jump_labels"
+            app:entryValues="@array/auto_jump_values"
+            app:key="auto_jump_m"
+            app:title="New track after a position jump of"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="2"
+            app:entries="@array/interval_labels"
+            app:entryValues="@array/interval_values"
+            app:key="track_interval_s"
+            app:title="Record a point every"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="5"
+            app:entries="@array/min_distance_labels"
+            app:entryValues="@array/min_distance_values"
+            app:key="track_min_distance_m"
+            app:title="Minimum movement"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="About">
+
+        <Preference app:iconSpaceReserved="false"
+            app:key="charts_folder"
+            app:selectable="false"
+            app:title="Charts folder" />
+
+        <Preference app:iconSpaceReserved="false"
+            app:selectable="false"
+            app:summary="Chart depths are relative to chart datum and don't include tide. This app is an aid only, not for primary navigation."
+            app:title="Safety" />
+    </PreferenceCategory>
+</PreferenceScreen>

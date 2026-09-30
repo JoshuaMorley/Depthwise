@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- On tablets settings opens as a popup over the map. -->
+    <style name="Theme.NZLINZ.Settings" parent="Theme.Material3.Light.Dialog">
+        <item name="colorPrimary">@color/ocean_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/ocean_container</item>
+        <item name="colorOnPrimaryContainer">@color/ocean_on_container</item>
+        <item name="colorSecondary">@color/ocean_secondary</item>
+        <item name="colorSecondaryContainer">@color/ocean_secondary_container</item>
+        <item name="android:colorBackground">@color/surface</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+    </style>
+</resources>
