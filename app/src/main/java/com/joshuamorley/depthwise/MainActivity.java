@@ -28,6 +28,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.graphics.drawable.Animatable;
+import android.widget.ImageView;
 import android.widget.CheckBox;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
@@ -72,9 +76,12 @@ import com.joshuamorley.depthwise.map.MapOverlays;
 import com.joshuamorley.depthwise.map.ShallowWatch;
 import com.joshuamorley.depthwise.map.SpriteLoader;
 import com.joshuamorley.depthwise.tracking.TrackRecorder;
+import com.joshuamorley.depthwise.ui.IntroWavesView;
 import com.joshuamorley.depthwise.util.FeatureText;
 import com.joshuamorley.depthwise.util.Geo;
 
+import org.maplibre.android.gestures.MoveGestureDetector;
+import org.maplibre.android.gestures.StandardScaleGestureDetector;
 import org.maplibre.android.camera.CameraPosition;
 import org.maplibre.android.camera.CameraUpdateFactory;
 import org.maplibre.android.geometry.LatLng;
@@ -217,17 +224,13 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Splash (with the pinging arrow) stays until the chart has drawn, or 3.5 s at most;
-        // after that the "Loading…" chip takes over.
+        // The system splash hands straight over to the in-app intro (same colour and icon
+        // position), so it's removed instantly rather than faded.
         SplashScreen splash = SplashScreen.installSplashScreen(this);
-        long splashStart = SystemClock.elapsedRealtime();
-        splash.setKeepOnScreenCondition(() ->
-                !firstFrameReady && SystemClock.elapsedRealtime() - splashStart < 3500);
-        splash.setOnExitAnimationListener(view -> view.getView().animate()
-                .alpha(0f)
-                .setDuration(250)
-                .withEndAction(view::remove)
-                .start());
+        splash.setOnExitAnimationListener(view -> {
+            view.remove();
+            startIntro(); // the intro is on screen from this moment
+        });
         EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -243,7 +246,10 @@ public class MainActivity extends AppCompatActivity implements
         mapView = findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);
         mapView.addOnDidBecomeIdleListener(() -> {
-            if (style != null) firstFrameReady = true;
+            if (style != null) {
+                firstFrameReady = true;
+                maybeHideIntro(false);
+            }
             if (tilesBusy) {
                 tilesBusy = false;
                 updateLoading();
@@ -251,12 +257,15 @@ public class MainActivity extends AppCompatActivity implements
         });
         mapView.addOnDidFailLoadingMapListener(error -> {
             firstFrameReady = true;
+            maybeHideIntro(true);
             styleBusy = tilesBusy = false;
             updateLoading();
             Toast.makeText(this, getString(R.string.map_load_failed, error), Toast.LENGTH_LONG).show();
         });
         mapView.getMapAsync(this::onMapReady);
         updateLoading();
+        // Safety net in case the splash hand-over callback never comes.
+        findViewById(R.id.intro).postDelayed(this::startIntro, 1500);
 
         trackStore.load();
         markStore.load();
@@ -408,6 +417,38 @@ public class MainActivity extends AppCompatActivity implements
         restoreCamera();
 
         map.addOnMapClickListener(this::onMapClick);
+        // Once the user pans/zooms, don't move the camera for them at launch.
+        map.addOnMoveListener(new MapLibreMap.OnMoveListener() {
+            @Override
+            public void onMoveBegin(@NonNull MoveGestureDetector detector) {
+                userMovedMap = true;
+            }
+
+            @Override
+            public void onMove(@NonNull MoveGestureDetector detector) {
+            }
+
+            @Override
+            public void onMoveEnd(@NonNull MoveGestureDetector detector) {
+            }
+        });
+        map.addOnScaleListener(new MapLibreMap.OnScaleListener() {
+            @Override
+            public void onScaleBegin(@NonNull StandardScaleGestureDetector detector) {
+                userMovedMap = true;
+            }
+
+            @Override
+            public void onScale(@NonNull StandardScaleGestureDetector detector) {
+            }
+
+            @Override
+            public void onScaleEnd(@NonNull StandardScaleGestureDetector detector) {
+            }
+        });
+        if (lastLocation != null) centreOnLaunch(lastLocation);
+        // No position yet? Don't leave the user staring at an empty, zoomed-out map.
+        mapView.postDelayed(this::showChartsIfNothingVisible, 4000);
         // Crosshair measuring: the provisional leg follows the map as it's dragged.
         map.addOnCameraMoveListener(() -> {
             if (measuring && measureCrosshairMode && !measurePoints.isEmpty()) updateMeasure();
@@ -542,6 +583,31 @@ public class MainActivity extends AppCompatActivity implements
         locationManager.requestLocationUpdates(provider, intervalMs, 0, locationListener, getMainLooper());
     }
 
+    /** Launch zoom: when the app is at harbour scale charts are actually drawn. */
+    private static final double LAUNCH_ZOOM = 13.5;
+    private boolean launchCentred, userMovedMap;
+
+    /** Once per launch, fly to the first recent fix, unless the user has already moved the map. */
+    private void centreOnLaunch(Location loc) {
+        if (launchCentred || userMovedMap || map == null || following || ageMs(loc) > 60_000) return;
+        launchCentred = true;
+        double zoom = Math.max(map.getCameraPosition().zoom, LAUNCH_ZOOM);
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                new LatLng(loc.getLatitude(), loc.getLongitude()), zoom), 1500);
+    }
+
+    /** No fix after a few seconds and too zoomed out to see any chart: show the first chart's area. */
+    private void showChartsIfNothingVisible() {
+        if (launchCentred || userMovedMap || map == null || map.getCameraPosition().zoom >= 9) return;
+        for (ChartSource s : charts.sources()) {
+            if (s.enabled && s.bounds() != null) {
+                launchCentred = true;
+                zoomToBounds(s.bounds());
+                return;
+            }
+        }
+    }
+
     /** How old a fix is, from its own timestamp. */
     private static long ageMs(Location loc) {
         return (SystemClock.elapsedRealtimeNanos() - loc.getElapsedRealtimeNanos()) / 1_000_000;
@@ -566,6 +632,7 @@ public class MainActivity extends AppCompatActivity implements
             return;
         }
         lastLocation = loc;
+        centreOnLaunch(loc);
         if (locationComponentReady) map.getLocationComponent().forceLocationUpdate(loc);
         updateHud(loc);
         runShallowCheck(loc, false);
@@ -977,28 +1044,62 @@ public class MainActivity extends AppCompatActivity implements
             row.setClickable(false);
         }
         overlays.setProbe(point, null);
+        // Keep the chart visible above the drawer: no dimming, and the drawer stops at ~55%.
+        sheet.getBehavior().setMaxHeight((int) (getResources().getDisplayMetrics().heightPixels * 0.55f));
+        if (sheet.getWindow() != null) sheet.getWindow().setDimAmount(0f);
         sheet.setOnDismissListener(d -> {
             openSheetRefresh = null;
             overlays.setProbe(null, null);
+            exitFocus(point);
         });
-        sheet.setOnShowListener(d -> keepAboveSheet(point, sheet));
+        sheet.setOnShowListener(d -> focusOnPoint(point, sheet));
         sheet.show();
     }
 
-    /** If the sheet covers the tapped point, slide the map up so the crosshair stays visible. */
-    private void keepAboveSheet(LatLng point, BottomSheetDialog sheet) {
-        if (following || map == null) return;
+    /** True while a map tap's details drawer is open and the controls are hidden. */
+    private boolean focusActive;
+
+    /**
+     * Point-inspect mode: hides the instruments and buttons, and centres the tapped point in
+     * the part of the chart still visible above the drawer.
+     */
+    private void focusOnPoint(LatLng point, BottomSheetDialog sheet) {
+        // If the drawer was closed before it finished opening, the "shown" callback can arrive
+        // after "dismissed"; don't hide the controls in that case.
+        if (map == null || !sheet.isShowing()) return;
+        stopFollowing(); // otherwise the camera would snap back to the boat
+        View overlay = findViewById(R.id.overlay);
+        focusActive = true;
+        overlay.animate().cancel();
+        // End actions also run when an animation is cancelled, so only hide if still focused.
+        overlay.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> {
+                    if (focusActive) overlay.setVisibility(View.INVISIBLE);
+                }).start();
         View panel = sheet.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-        if (panel == null || panel.getHeight() == 0) return;
-        // The sheet is still sliding in, so use its final height rather than its current position.
-        float sheetTop = mapView.getHeight() - panel.getHeight();
-        PointF p = map.getProjection().toScreenLocation(point);
-        float wantedY = sheetTop - dp(72);
-        if (p.y <= wantedY) return;
-        // Move the camera centre down by the overlap, which moves the point up.
-        float cx = mapView.getWidth() / 2f, cy = mapView.getHeight() / 2f;
-        LatLng target = map.getProjection().fromScreenLocation(new PointF(cx, cy + (p.y - wantedY)));
-        map.animateCamera(CameraUpdateFactory.newLatLng(target), 300);
+        // The drawer is still sliding in, so use its final height rather than its position.
+        int covered = panel != null ? panel.getHeight() : mapView.getHeight() / 2;
+        int top = overlay.getPaddingTop(); // status bar
+        CameraPosition target = new CameraPosition.Builder(map.getCameraPosition())
+                .target(point)
+                .padding(0, top, 0, covered)
+                .build();
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(target), 350);
+    }
+
+    /** Leaves point-inspect mode: controls back, full-screen map with the point centred. */
+    private void exitFocus(LatLng point) {
+        View overlay = findViewById(R.id.overlay);
+        focusActive = false;
+        overlay.animate().cancel(); // its end action now sees focusActive == false and does nothing
+        overlay.setVisibility(View.VISIBLE);
+        overlay.animate().alpha(1f).setDuration(200).start();
+        if (map == null) return;
+        CameraPosition target = new CameraPosition.Builder(map.getCameraPosition())
+                .target(point)
+                .padding(0, 0, 0, 0)
+                .build();
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(target), 300);
     }
 
     private String distanceFromBoat(double lat, double lon) {
@@ -1182,6 +1283,48 @@ public class MainActivity extends AppCompatActivity implements
         updateLoading();
     }
 
+    // ------------------------------------------------------------------ intro
+
+    // Timed from when the intro is actually visible (the system splash handing over).
+    private static final long INTRO_MIN_MS = 1800, INTRO_MAX_MS = 6000;
+    private long introStartedAt;
+
+    /** Plays the start-up intro: pinging arrow, rising depth bands, name and loading status. */
+    private void startIntro() {
+        View intro = findViewById(R.id.intro);
+        if (introStartedAt != 0 || intro.getVisibility() != View.VISIBLE) return;
+        introStartedAt = SystemClock.elapsedRealtime();
+        ImageView icon = findViewById(R.id.introIcon);
+        if (icon.getDrawable() instanceof Animatable) ((Animatable) icon.getDrawable()).start();
+        View title = findViewById(R.id.introTitle);
+        title.setTranslationY(dp(14));
+        title.animate().alpha(1f).translationY(0).setStartDelay(250).setDuration(650)
+                .setInterpolator(new DecelerateInterpolator()).start();
+        intro.postDelayed(() -> maybeHideIntro(false), INTRO_MIN_MS);
+        intro.postDelayed(() -> maybeHideIntro(true), INTRO_MAX_MS);
+    }
+
+    /** Reveals the chart once it has drawn (and the intro has had a moment), or when forced. */
+    private void maybeHideIntro(boolean force) {
+        View intro = findViewById(R.id.intro);
+        if (intro.getVisibility() != View.VISIBLE || intro.getTag() != null) return;
+        if (introStartedAt == 0) return; // not on screen yet
+        if (!force && (!firstFrameReady || SystemClock.elapsedRealtime() - introStartedAt < INTRO_MIN_MS)) return;
+        intro.setTag("hiding");
+        intro.setClickable(false);
+        findViewById(R.id.introTitle).animate().alpha(0f).setStartDelay(0).setDuration(200).start();
+        findViewById(R.id.introStatus).animate().alpha(0f).setDuration(200).start();
+        findViewById(R.id.introIcon).animate().scaleX(1.8f).scaleY(1.8f).alpha(0f)
+                .setDuration(500).setInterpolator(new AccelerateInterpolator()).start();
+        IntroWavesView waves = findViewById(R.id.introWaves);
+        waves.animate().translationY(intro.getHeight() * 0.4f).setDuration(500)
+                .setInterpolator(new AccelerateInterpolator()).start();
+        intro.animate().alpha(0f).setStartDelay(150).setDuration(450).withEndAction(() -> {
+            intro.setVisibility(View.GONE);
+            waves.stop();
+        }).start();
+    }
+
     /** Shows what's loading, after a short delay so quick loads don't flash the chip. */
     private void updateLoading() {
         int msg = chartsBusy ? R.string.loading_charts
@@ -1189,6 +1332,8 @@ public class MainActivity extends AppCompatActivity implements
                 : iconsBusy ? R.string.loading_icons
                 : tilesBusy ? R.string.loading_tiles
                 : 0;
+        TextView introStatus = findViewById(R.id.introStatus);
+        if (introStatus != null) introStatus.setText(msg == 0 ? "" : getString(msg));
         loading.removeCallbacks(showLoading);
         if (msg == 0) {
             loading.setVisibility(View.GONE);

@@ -40,6 +40,14 @@ android {
     }
 
     buildTypes {
+        // Local test builds that install next to the released app (separate package and name),
+        // so testing never needs the release copy uninstalled. CI/releases don't use it.
+        create("dev") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            matchingFallbacks += listOf("debug")
+        }
         release {
             if (keystoreFile != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false

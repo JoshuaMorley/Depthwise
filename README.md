@@ -1,7 +1,7 @@
 # Depthwise
 
-[![Build APK](https://github.com/JoshuaMorley/NZ-LINZ/actions/workflows/build.yml/badge.svg)](https://github.com/JoshuaMorley/NZ-LINZ/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/JoshuaMorley/NZ-LINZ)](https://github.com/JoshuaMorley/NZ-LINZ/releases/latest)
+[![Build APK](https://github.com/JoshuaMorley/Depthwise/actions/workflows/build.yml/badge.svg)](https://github.com/JoshuaMorley/Depthwise/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/JoshuaMorley/Depthwise)](https://github.com/JoshuaMorley/Depthwise/releases/latest)
 
 Depthwise is an offline marine chart app for Android, for New Zealand waters. It draws chart packs
 built from LINZ hydrographic data (PMTiles on the device), with live position, tracks, marks,
@@ -16,8 +16,8 @@ Land Information New Zealand (LINZ); it uses LINZ open data under the CC BY 4.0 
 
 ## Download
 
-**[⬇ Download the latest APK](https://github.com/JoshuaMorley/NZ-LINZ/releases/latest/download/Depthwise.apk)**
-(Android 11 or newer), or pick a version from [Releases](https://github.com/JoshuaMorley/NZ-LINZ/releases).
+**[⬇ Download the latest APK](https://github.com/JoshuaMorley/Depthwise/releases/latest/download/Depthwise.apk)**
+(Android 11 or newer), or pick a version from [Releases](https://github.com/JoshuaMorley/Depthwise/releases).
 
 To install, open the APK on your phone and allow installs from your browser or file manager when asked.
 Then add a chart pack (see [Charts](#charts)).
@@ -72,7 +72,7 @@ Requires JDK 21 (Android Studio's bundled JDK works).
 
 ## Releases
 
-Every push to `main` builds an APK in [GitHub Actions](https://github.com/JoshuaMorley/NZ-LINZ/actions).
+Every push to `main` builds an APK in [GitHub Actions](https://github.com/JoshuaMorley/Depthwise/actions).
 To publish a release, push a version tag:
 
 ```bash
