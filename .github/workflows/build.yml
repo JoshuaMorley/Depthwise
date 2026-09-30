@@ -44,6 +44,11 @@ jobs:
           java-version: "21"
 
       - uses: android-actions/setup-android@v3
+        with:
+          # The default also installs the obsolete "tools" package, which no longer exists.
+          # AGP downloads the platform/build-tools it needs itself.
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
 
       - uses: gradle/actions/setup-gradle@v4
 
