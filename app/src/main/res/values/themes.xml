@@ -14,6 +14,14 @@
         <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
 
+    <!-- Launch: brand-blue splash with the pinging arrow until the chart has drawn. -->
+    <style name="Theme.NZLINZ.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ocean_primary</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="windowSplashScreenAnimationDuration">1400</item>
+        <item name="postSplashScreenTheme">@style/Theme.NZLINZ</item>
+    </style>
+
     <!-- Settings: full screen on phones; values-sw600dp turns it into a popup on tablets. -->
     <style name="Theme.NZLINZ.Settings" parent="Theme.NZLINZ" />
 </resources>

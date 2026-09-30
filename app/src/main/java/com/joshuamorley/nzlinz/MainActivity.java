@@ -9,6 +9,7 @@ import android.content.res.ColorStateList;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
+import android.location.GnssStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -41,6 +42,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.splashscreen.SplashScreen;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -127,11 +129,36 @@ public class MainActivity extends AppCompatActivity implements
 
     private LocationManager locationManager;
     private Location lastLocation;
-    private long lastGpsFixAt;
+    private long lastGpsFixAt, lastNetworkFixAt;
+    private int satsUsed, satsVisible;
+    private View gpsStatus;
+    private TextView gpsStatusText, gpsStatusDetail;
+    private final GnssStatus.Callback gnssCallback = new GnssStatus.Callback() {
+        @Override
+        public void onSatelliteStatusChanged(@NonNull GnssStatus status) {
+            int used = 0;
+            for (int i = 0; i < status.getSatelliteCount(); i++) if (status.usedInFix(i)) used++;
+            satsUsed = used;
+            satsVisible = status.getSatelliteCount();
+        }
+
+        @Override
+        public void onStopped() {
+            satsUsed = satsVisible = 0;
+        }
+    };
+    private final Runnable gpsTicker = new Runnable() {
+        @Override
+        public void run() {
+            updateGpsStatus();
+            updateAccuracy(); // goes back to "--" when fixes stop
+            gpsStatus.postDelayed(this, 2000);
+        }
+    };
     private boolean locationComponentReady;
     private boolean following;
 
-    private boolean measuring;
+    private boolean measuring, measureCrosshairMode;
     private final List<LatLng> measurePoints = new ArrayList<>();
 
     private long lastShallowCheck, lastActiveRedraw, lastAlarmAt, silencedUntil, lastDepthLookup;
@@ -140,7 +167,10 @@ public class MainActivity extends AppCompatActivity implements
     private ToneGenerator tone;
 
     private View hud, warning, measureBar, loading;
-    private TextView hudSpeed, hudCourse, hudDepth, warningText, measureTotal, measureDetail, loadingText;
+    private TextView hudSpeed, hudCourse, hudDepth, hudAccuracy, warningText, measureTotal, measureDetail, loadingText;
+
+    /** Set once the chart has drawn; releases the splash screen. */
+    private volatile boolean firstFrameReady;
 
     // What's still loading; the chip shows the first one that's true.
     private boolean chartsBusy, styleBusy = true, iconsBusy, tilesBusy;
@@ -185,6 +215,17 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Splash (with the pinging arrow) stays until the chart has drawn, or 3.5 s at most;
+        // after that the "Loading…" chip takes over.
+        SplashScreen splash = SplashScreen.installSplashScreen(this);
+        long splashStart = SystemClock.elapsedRealtime();
+        splash.setKeepOnScreenCondition(() ->
+                !firstFrameReady && SystemClock.elapsedRealtime() - splashStart < 3500);
+        splash.setOnExitAnimationListener(view -> view.getView().animate()
+                .alpha(0f)
+                .setDuration(250)
+                .withEndAction(view::remove)
+                .start());
         EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -200,12 +241,14 @@ public class MainActivity extends AppCompatActivity implements
         mapView = findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);
         mapView.addOnDidBecomeIdleListener(() -> {
+            if (style != null) firstFrameReady = true;
             if (tilesBusy) {
                 tilesBusy = false;
                 updateLoading();
             }
         });
         mapView.addOnDidFailLoadingMapListener(error -> {
+            firstFrameReady = true;
             styleBusy = tilesBusy = false;
             updateLoading();
             Toast.makeText(this, getString(R.string.map_load_failed, error), Toast.LENGTH_LONG).show();
@@ -228,11 +271,15 @@ public class MainActivity extends AppCompatActivity implements
         hudSpeed = findViewById(R.id.hudSpeed);
         hudCourse = findViewById(R.id.hudCourse);
         hudDepth = findViewById(R.id.hudDepth);
+        hudAccuracy = findViewById(R.id.hudAccuracy);
         warning = findViewById(R.id.warning);
         warningText = findViewById(R.id.warningText);
         measureBar = findViewById(R.id.measureBar);
         measureTotal = findViewById(R.id.measureTotal);
         measureDetail = findViewById(R.id.measureDetail);
+        gpsStatus = findViewById(R.id.gpsStatus);
+        gpsStatusText = findViewById(R.id.gpsStatusText);
+        gpsStatusDetail = findViewById(R.id.gpsStatusDetail);
         loading = findViewById(R.id.loading);
         loadingText = findViewById(R.id.loadingText);
         btnLocation = findViewById(R.id.btnLocation);
@@ -258,6 +305,12 @@ public class MainActivity extends AppCompatActivity implements
             updateMeasure();
         });
         findViewById(R.id.measureClose).setOnClickListener(v -> setMeasuring(false));
+        findViewById(R.id.measureAdd).setOnClickListener(v -> {
+            LatLng c = crosshairPoint();
+            if (c == null) return;
+            measurePoints.add(c);
+            updateMeasure();
+        });
         btnLocation.setOnClickListener(v -> onLocationButton());
         btnRecord.setOnClickListener(v -> onRecordButton());
         warning.setOnClickListener(v -> {
@@ -279,6 +332,7 @@ public class MainActivity extends AppCompatActivity implements
         prefs.raw().registerOnSharedPreferenceChangeListener(prefListener);
         if (hasLocationPermission()) startLocationUpdates();
         updateRecordButton();
+        gpsStatus.post(gpsTicker);
     }
 
     @Override
@@ -314,6 +368,8 @@ public class MainActivity extends AppCompatActivity implements
         recorder.removeListener(this);
         prefs.raw().unregisterOnSharedPreferenceChangeListener(prefListener);
         locationManager.removeUpdates(locationListener);
+        locationManager.unregisterGnssStatusCallback(gnssCallback);
+        gpsStatus.removeCallbacks(gpsTicker);
     }
 
     @Override
@@ -350,6 +406,10 @@ public class MainActivity extends AppCompatActivity implements
         restoreCamera();
 
         map.addOnMapClickListener(this::onMapClick);
+        // Crosshair measuring: the provisional leg follows the map as it's dragged.
+        map.addOnCameraMoveListener(() -> {
+            if (measuring && measureCrosshairMode && !measurePoints.isEmpty()) updateMeasure();
+        });
         map.addOnMapLongClickListener(point -> {
             if (measuring) return false;
             showMarkDialog(null, point);
@@ -411,7 +471,7 @@ public class MainActivity extends AppCompatActivity implements
         overlays.setTracks(trackStore.snapshot(), active != null ? active.id : null);
         overlays.setActive(active);
         overlays.setMarks(markStore.snapshot());
-        overlays.setMeasure(measurePoints);
+        overlays.setMeasure(measurePoints, measureLegLabels());
     }
 
     @SuppressLint("MissingPermission")
@@ -460,6 +520,7 @@ public class MainActivity extends AppCompatActivity implements
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0,
                         locationListener, getMainLooper());
             }
+            locationManager.registerGnssStatusCallback(ContextCompat.getMainExecutor(this), gnssCallback);
             if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10,
                         locationListener, getMainLooper());
@@ -477,18 +538,79 @@ public class MainActivity extends AppCompatActivity implements
         boolean gps = LocationManager.GPS_PROVIDER.equals(loc.getProvider());
         long now = SystemClock.elapsedRealtime();
         if (gps) lastGpsFixAt = now;
-        else if (now - lastGpsFixAt < 10_000) return; // prefer GPS while it's fresh
+        else lastNetworkFixAt = now;
+        if (!gps && lastGpsFixAt > 0 && now - lastGpsFixAt < 10_000) return; // prefer GPS while it's fresh
         lastLocation = loc;
         if (locationComponentReady) map.getLocationComponent().forceLocationUpdate(loc);
         updateHud(loc);
         runShallowCheck(loc, false);
     }
 
+    /** Explains a missing or poor position; hidden when GPS is fresh and accurate. */
+    private void updateGpsStatus() {
+        long now = SystemClock.elapsedRealtime();
+        int title, detailRes = 0;
+        String detail = null;
+        View.OnClickListener onClick = null;
+        if (!hasLocationPermission()) {
+            title = R.string.gps_no_permission;
+            detailRes = R.string.gps_no_permission_detail;
+            onClick = v -> locationPermission.launch(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION});
+        } else if (!locationManager.isLocationEnabled()) {
+            title = R.string.gps_off;
+            detailRes = R.string.gps_off_detail;
+            onClick = v -> startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+        } else if (lastGpsFixAt > 0 && now - lastGpsFixAt < 10_000) {
+            if (lastLocation == null || !lastLocation.hasAccuracy() || lastLocation.getAccuracy() <= 50) {
+                gpsStatus.setVisibility(View.GONE);
+                return;
+            }
+            title = R.string.gps_weak;
+            detail = getString(R.string.gps_weak_detail, Math.round(lastLocation.getAccuracy()));
+        } else if (lastLocation != null && lastNetworkFixAt > 0 && now - lastNetworkFixAt < 60_000) {
+            title = R.string.gps_approx;
+            detail = getString(R.string.gps_approx_detail, Math.round(lastLocation.getAccuracy()));
+        } else if (lastGpsFixAt > 0) {
+            title = R.string.gps_lost;
+            detail = getString(R.string.gps_lost_detail, Geo.formatDuration(now - lastGpsFixAt));
+        } else {
+            title = R.string.gps_searching;
+            detail = satsVisible > 0 ? getString(R.string.gps_searching_detail, satsUsed, satsVisible)
+                    : getString(R.string.gps_searching_nosats);
+        }
+        gpsStatusText.setText(title);
+        if (detailRes != 0) detail = getString(detailRes);
+        gpsStatusDetail.setText(detail);
+        gpsStatusDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
+        gpsStatus.setOnClickListener(onClick);
+        gpsStatus.setClickable(onClick != null);
+        gpsStatus.setVisibility(View.VISIBLE);
+    }
+
     private void updateHud(Location loc) {
         boolean moving = loc.hasSpeed() && loc.getSpeed() > 0.3f;
         hudSpeed.setText(loc.hasSpeed() ? Geo.formatSpeed(loc.getSpeed(), prefs.speedUnits()) : "--");
         hudCourse.setText(moving && loc.hasBearing() ? Geo.formatBearing(loc.getBearing()) + "T" : "--");
+        updateAccuracy();
         lookUpBoatDepth(loc, false);
+    }
+
+    /** GPS cell: ±accuracy of the current fix, coloured by quality; "--" when there's no fresh fix. */
+    private void updateAccuracy() {
+        long now = SystemClock.elapsedRealtime();
+        long lastFix = Math.max(lastGpsFixAt, lastNetworkFixAt);
+        if (lastLocation == null || !lastLocation.hasAccuracy() || lastFix == 0 || now - lastFix > 10_000) {
+            hudAccuracy.setText("--");
+            hudAccuracy.setTextColor(ContextCompat.getColor(this, R.color.ocean_on_container));
+            return;
+        }
+        float acc = lastLocation.getAccuracy();
+        hudAccuracy.setText(acc < 10 ? String.format(Locale.US, "±%.0f m", acc)
+                : acc < 1000 ? String.format(Locale.US, "±%d m", Math.round(acc))
+                : String.format(Locale.US, "±%.1f km", acc / 1000));
+        int color = acc <= 10 ? R.color.good_green : acc <= 30 ? R.color.warning_amber : R.color.recording;
+        hudAccuracy.setTextColor(ContextCompat.getColor(this, color));
     }
 
     /**
@@ -543,19 +665,31 @@ public class MainActivity extends AppCompatActivity implements
     /** Shows the instrument cells chosen in settings; hides the card if none are. */
     private void applyHudPrefs() {
         View[] boxes = {findViewById(R.id.hudSpeedBox), findViewById(R.id.hudCourseBox),
-                findViewById(R.id.hudDepthBox)};
-        boolean[] show = {prefs.showSog(), prefs.showCog(), prefs.showDepth()};
-        boolean first = true;
+                findViewById(R.id.hudDepthBox), findViewById(R.id.hudAccuracyBox)};
+        boolean[] show = {prefs.showSog(), prefs.showCog(), prefs.showDepth(), prefs.showAccuracy()};
+        LinearLayout row1 = findViewById(R.id.hudRow1), row2 = findViewById(R.id.hudRow2);
+        List<View> visible = new ArrayList<>();
         for (int i = 0; i < boxes.length; i++) {
+            ((ViewGroup) boxes[i].getParent()).removeView(boxes[i]);
             boxes[i].setVisibility(show[i] ? View.VISIBLE : View.GONE);
-            if (show[i]) {
-                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) boxes[i].getLayoutParams();
-                lp.setMarginStart(first ? 0 : dp(18));
-                boxes[i].setLayoutParams(lp);
-                first = false;
-            }
+            if (show[i]) visible.add(boxes[i]);
+            else row1.addView(boxes[i]); // keep hidden cells attached so findViewById still works
         }
-        hud.setVisibility(first ? View.GONE : View.VISIBLE);
+        // Phones can't fit four cells across, so use a 2x2 grid there.
+        boolean grid = !getResources().getBoolean(R.bool.is_tablet) && visible.size() > 3;
+        int perRow = grid ? 2 : visible.size();
+        for (int i = 0; i < visible.size(); i++) {
+            View box = visible.get(i);
+            boolean firstInRow = i % Math.max(1, perRow) == 0;
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMarginStart(firstInRow ? 0 : dp(18));
+            // Line the grid's columns up.
+            box.setMinimumWidth(grid && firstInRow ? dp(112) : 0);
+            (i < perRow ? row1 : row2).addView(box, lp);
+        }
+        row2.setVisibility(grid ? View.VISIBLE : View.GONE);
+        hud.setVisibility(visible.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private void onLocationButton() {
@@ -667,6 +801,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private boolean onMapClick(@NonNull LatLng point) {
         if (measuring) {
+            if (measureCrosshairMode) return true; // points come from the Add button
             measurePoints.add(point);
             updateMeasure();
             return true;
@@ -829,6 +964,11 @@ public class MainActivity extends AppCompatActivity implements
     private void setMeasuring(boolean on) {
         measuring = on;
         measurePoints.clear();
+        boolean crosshair = on && prefs.measureCrosshair();
+        measureCrosshairMode = crosshair;
+        findViewById(R.id.measureCrosshair).setVisibility(crosshair ? View.VISIBLE : View.GONE);
+        findViewById(R.id.measureAdd).setVisibility(crosshair ? View.VISIBLE : View.GONE);
+        if (crosshair) stopFollowing(); // following would drag the crosshair with the boat
         measureBar.setVisibility(on ? View.VISIBLE : View.GONE);
         updateRecordButton();
         FloatingActionButton b = findViewById(R.id.btnMeasure);
@@ -839,20 +979,54 @@ public class MainActivity extends AppCompatActivity implements
         updateMeasure();
     }
 
-    private void updateMeasure() {
-        overlays.setMeasure(measurePoints);
+    /** The map position under the centre crosshair. */
+    private LatLng crosshairPoint() {
+        if (map == null || mapView.getWidth() == 0) return null;
+        return map.getProjection().fromScreenLocation(
+                new PointF(mapView.getWidth() / 2f, mapView.getHeight() / 2f));
+    }
+
+    /** Placed points, plus the live crosshair position as a provisional last point in crosshair mode. */
+    private List<LatLng> measureLine() {
+        List<LatLng> line = new ArrayList<>(measurePoints);
+        if (measureCrosshairMode && !measurePoints.isEmpty()) {
+            LatLng c = crosshairPoint();
+            if (c != null) line.add(c);
+        }
+        return line;
+    }
+
+    /** Distance of each leg of {@code line}, in the chosen units. */
+    private List<String> measureLegLabels(List<LatLng> line) {
+        List<String> labels = new ArrayList<>();
         String units = prefs.distanceUnits();
-        if (measurePoints.size() < 2) {
-            measureTotal.setText(R.string.measure_hint);
+        for (int i = 1; i < line.size(); i++) {
+            LatLng a = line.get(i - 1), b = line.get(i);
+            labels.add(Geo.formatDistance(
+                    Geo.distanceM(a.getLatitude(), a.getLongitude(), b.getLatitude(), b.getLongitude()), units));
+        }
+        return labels;
+    }
+
+    private List<String> measureLegLabels() {
+        return measureLegLabels(measureLine());
+    }
+
+    private void updateMeasure() {
+        List<LatLng> line = measureLine();
+        overlays.setMeasure(line, measureLegLabels(line));
+        String units = prefs.distanceUnits();
+        if (line.size() < 2) {
+            measureTotal.setText(measureCrosshairMode ? R.string.measure_hint_crosshair : R.string.measure_hint);
             measureDetail.setVisibility(View.GONE);
             return;
         }
         double total = 0;
-        for (int i = 1; i < measurePoints.size(); i++) {
-            LatLng a = measurePoints.get(i - 1), b = measurePoints.get(i);
+        for (int i = 1; i < line.size(); i++) {
+            LatLng a = line.get(i - 1), b = line.get(i);
             total += Geo.distanceM(a.getLatitude(), a.getLongitude(), b.getLatitude(), b.getLongitude());
         }
-        LatLng a = measurePoints.get(measurePoints.size() - 2), b = measurePoints.get(measurePoints.size() - 1);
+        LatLng a = line.get(line.size() - 2), b = line.get(line.size() - 1);
         double leg = Geo.distanceM(a.getLatitude(), a.getLongitude(), b.getLatitude(), b.getLongitude());
         double brg = Geo.bearingDeg(a.getLatitude(), a.getLongitude(), b.getLatitude(), b.getLongitude());
         measureTotal.setText(Geo.formatDistance(total, units));

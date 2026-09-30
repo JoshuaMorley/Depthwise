@@ -217,8 +217,21 @@ public final class ChartStyler {
                 sources.put(ns + "/" + key, src);
             }
 
-            for (ChartPack.AlarmRule r : pack.alarms) {
-                alarms.add(new Alarm(ns + "/" + r.source, r, false));
+            // Group of each source, so highlights follow their layer toggle (e.g. Soundings).
+            Map<String, String> sourceGroup = new HashMap<>();
+            for (int i = 0; i < pack.layers.length(); i++) {
+                JSONObject l = pack.layers.getJSONObject(i);
+                if (l.has("source") && l.has("group") && !sourceGroup.containsKey(l.getString("source"))) {
+                    sourceGroup.put(l.getString("source"), l.getString("group"));
+                }
+            }
+            for (int i = 0; i < pack.alarms.size(); i++) {
+                ChartPack.AlarmRule r = pack.alarms.get(i);
+                Alarm alarm = new Alarm(ns + "/" + r.source, r, false);
+                alarms.add(alarm);
+                if (showShallow && safe > 0) {
+                    addShallowHighlight(ns + "/__shallow" + i, alarm, sourceGroup.get(r.source));
+                }
             }
 
             List<ChartPack.NearestRule> nearestRules = pack.nearest;
@@ -305,6 +318,33 @@ public final class ChartStyler {
                     }
                 }
             }
+        }
+
+        /** Red shading over area features an alarm rule says are too shallow. */
+        private void addShallowHighlight(String id, Alarm a, String group) throws JSONException {
+            JSONArray danger = dangerFilter(a, safe);
+            JSONArray isPolygon = arr("match", arr("geometry-type"), arr("Polygon", "MultiPolygon"), true, false);
+            JSONObject area = new JSONObject()
+                    .put("id", id + "/area")
+                    .put("type", "fill")
+                    .put("source", a.sourceId)
+                    .put("filter", danger != null ? arr("all", isPolygon, danger) : isPolygon)
+                    .put("paint", new JSONObject().put("fill-color", "#E53935").put("fill-opacity", 0.3)
+                            .put("fill-antialias", false));
+            if (a.rule.sourceLayer != null) area.put("source-layer", a.rule.sourceLayer);
+            if (group != null) {
+                Group g = groups.get(group);
+                if (g == null) {
+                    g = new Group(group, group, true);
+                    groups.put(group, g);
+                }
+                g.layerIds.add(id + "/area");
+                if (!visibility.isVisible(g.id, g.defaultVisible)) {
+                    area.put("layout", new JSONObject().put("visibility", "none"));
+                }
+            }
+            // Areas only: ringing every shallow sounding cluttered the chart.
+            pending.add(new Pending(area, 1.5, seq++));  // above areas, below lines
         }
 
         private String uniqueNamespace(String base) throws JSONException {
@@ -450,6 +490,31 @@ public final class ChartStyler {
             return new Result(style.toString(), queryable, inspect, titles, alarms, sprites,
                     new ArrayList<>(groups.values()), attributions, nearest);
         }
+    }
+
+    /**
+     * MapLibre filter matching features an alarm rule treats as dangerous for a boat
+     * needing {@code safe} metres. Shared by the shallow highlight and the alarm so they agree.
+     * Returns null when every feature is dangerous (no depth field and no filter).
+     */
+    public static JSONArray dangerFilter(Alarm a, double safe) {
+        ChartPack.AlarmRule rule = a.rule;
+        JSONArray cond = null;
+        if (rule.depthField != null) {
+            double missing = a.negate ? -1e6 : 1e6;
+            JSONArray depth = arr("to-number", arr("get", rule.depthField), missing);
+            if (rule.depthDecimalField != null) {
+                depth = arr("+", depth, arr("/", arr("to-number", arr("get", rule.depthDecimalField), 0), 10));
+            }
+            if (a.negate) depth = arr("*", -1, depth);
+            cond = arr("<", depth, safe);
+            if (rule.dangerWhenNoDepth) {
+                cond = arr("any", cond, arr("!", arr("has", rule.depthField)),
+                        arr("==", arr("to-string", arr("get", rule.depthField)), ""));
+            }
+        }
+        if (rule.filter != null && cond != null) return arr("all", rule.filter, cond);
+        return rule.filter != null ? rule.filter : cond;
     }
 
     /** Draw order: rasters, areas, lines, points, labels. */

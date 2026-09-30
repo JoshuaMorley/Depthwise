@@ -139,26 +139,8 @@ public final class ShallowWatch {
     private void buildFilters(double safe) {
         filters = new Expression[alarms.size()];
         for (int i = 0; i < alarms.size(); i++) {
-            ChartStyler.Alarm a = alarms.get(i);
-            ChartPack.AlarmRule rule = a.rule;
-            JSONArray cond;
-            if (rule.depthField == null) {
-                cond = null; // every feature matching the rule's filter is a hazard
-            } else {
-                double missing = a.negate ? -1e6 : 1e6;
-                JSONArray depth = arr("to-number", arr("get", rule.depthField), missing);
-                if (rule.depthDecimalField != null) {
-                    depth = arr("+", depth, arr("/", arr("to-number", arr("get", rule.depthDecimalField), 0), 10));
-                }
-                if (a.negate) depth = arr("*", -1, depth);
-                cond = arr("<", depth, safe);
-                if (rule.dangerWhenNoDepth) {
-                    cond = arr("any", cond, arr("!", arr("has", rule.depthField)),
-                            arr("==", arr("to-string", arr("get", rule.depthField)), ""));
-                }
-            }
-            JSONArray full = rule.filter != null && cond != null ? arr("all", rule.filter, cond)
-                    : rule.filter != null ? rule.filter : cond;
+            // Same test as the map's shallow highlight, so what's red is what alarms.
+            JSONArray full = ChartStyler.dangerFilter(alarms.get(i), safe);
             try {
                 filters[i] = full == null ? null : Expression.Converter.convert(full.toString());
             } catch (RuntimeException e) {

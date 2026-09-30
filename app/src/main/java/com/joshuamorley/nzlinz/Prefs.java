@@ -13,9 +13,12 @@ public final class Prefs {
     public static final String SHOW_SOG = "show_sog";
     public static final String SHOW_COG = "show_cog";
     public static final String SHOW_DEPTH = "show_depth";
+    public static final String SHOW_ACCURACY = "show_accuracy";
     public static final String TRACK_MODE = "track_mode";
     public static final String AUTO_GAP_MIN = "auto_gap_min";
     public static final String AUTO_JUMP_M = "auto_jump_m";
+
+    public static final String MEASURE_MODE = "measure_mode";
 
     public static final String TRACK_AUTO = "auto";
     public static final String TRACK_MANUAL = "manual";
@@ -49,6 +52,10 @@ public final class Prefs {
     public boolean showSog() { return sp.getBoolean(SHOW_SOG, true); }
     public boolean showCog() { return sp.getBoolean(SHOW_COG, true); }
     public boolean showDepth() { return sp.getBoolean(SHOW_DEPTH, true); }
+    public boolean showAccuracy() { return sp.getBoolean(SHOW_ACCURACY, true); }
+
+    /** Measure by a fixed centre crosshair (drag the map, press Add) rather than tapping points. */
+    public boolean measureCrosshair() { return "crosshair".equals(sp.getString(MEASURE_MODE, "tap")); }
 
     /** {@link #TRACK_AUTO}, {@link #TRACK_MANUAL} or {@link #TRACK_OFF}. */
     public String trackMode() { return sp.getString(TRACK_MODE, TRACK_MANUAL); }

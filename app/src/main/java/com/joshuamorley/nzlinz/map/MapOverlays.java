@@ -1,7 +1,13 @@
 package com.joshuamorley.nzlinz.map;
 
 import static org.maplibre.android.style.expressions.Expression.eq;
+import static org.maplibre.android.style.expressions.Expression.geometryType;
 import static org.maplibre.android.style.expressions.Expression.get;
+import static org.maplibre.android.style.expressions.Expression.has;
+import static org.maplibre.android.style.layers.PropertyFactory.symbolPlacement;
+import static org.maplibre.android.style.layers.PropertyFactory.textAllowOverlap;
+import static org.maplibre.android.style.layers.PropertyFactory.textIgnorePlacement;
+import static org.maplibre.android.style.layers.PropertyFactory.textKeepUpright;
 import static org.maplibre.android.style.expressions.Expression.literal;
 import static org.maplibre.android.style.expressions.Expression.toColor;
 import static org.maplibre.android.style.layers.PropertyFactory.circleColor;
@@ -54,6 +60,8 @@ import java.util.List;
 public final class MapOverlays {
 
     public static final String MARKS_LAYER = "ov-marks";
+    /** Deep orange: stands out on the chart's blues, greens and land buff. */
+    private static final String MEASURE_COLOR = "#E65100";
 
     private static final String SRC_TRACKS = "ov-tracks";
     private static final String SRC_ACTIVE = "ov-active";
@@ -98,20 +106,49 @@ public final class MapOverlays {
                 lineCap(Property.LINE_CAP_ROUND),
                 lineJoin(Property.LINE_JOIN_ROUND)));
 
+        // Lines drawn over the chart get a white casing so they stand out on any water colour.
+        style.addLayer(new LineLayer("ov-ahead-casing", SRC_AHEAD).withProperties(
+                lineColor("#FFFFFF"),
+                lineWidth(6f),
+                lineCap(Property.LINE_CAP_ROUND)));
         style.addLayer(new LineLayer("ov-ahead-line", SRC_AHEAD).withProperties(
                 lineColor(toColor(get("color"))),
-                lineWidth(2.5f),
+                lineWidth(3f),
                 lineDasharray(new Float[]{2f, 1.5f})));
 
+        style.addLayer(new LineLayer("ov-measure-casing", SRC_MEASURE).withProperties(
+                lineColor("#FFFFFF"),
+                lineOpacity(0.9f),
+                lineWidth(4.5f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)));
         style.addLayer(new LineLayer("ov-measure-line", SRC_MEASURE).withProperties(
-                lineColor("#0B5A8C"),
-                lineWidth(3f),
-                lineDasharray(new Float[]{2.5f, 1.5f})));
-        style.addLayer(new CircleLayer("ov-measure-pts", SRC_MEASURE).withProperties(
-                circleRadius(5f),
-                circleColor("#FFFFFF"),
-                circleStrokeColor("#0B5A8C"),
-                circleStrokeWidth(2.5f)));
+                lineColor(MEASURE_COLOR),
+                lineWidth(2f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)));
+        style.addLayer(new CircleLayer("ov-measure-pts", SRC_MEASURE)
+                .withFilter(eq(geometryType(), literal("Point")))
+                .withProperties(
+                        circleRadius(4f),
+                        circleColor(MEASURE_COLOR),
+                        circleStrokeColor("#FFFFFF"),
+                        circleStrokeWidth(1.5f)));
+        // Leg distances, written along the middle of each leg.
+        style.addLayer(new SymbolLayer("ov-measure-labels", SRC_MEASURE)
+                .withFilter(has("label"))
+                .withProperties(
+                        symbolPlacement(Property.SYMBOL_PLACEMENT_LINE_CENTER),
+                        textField(get("label")),
+                        textFont(new String[]{ChartStyler.FONT}),
+                        textSize(13f),
+                        textOffset(new Float[]{0f, -0.9f}),
+                        textKeepUpright(true),
+                        textAllowOverlap(true),
+                        textIgnorePlacement(true),
+                        textColor("#BF360C"),
+                        textHaloColor("#FFFFFF"),
+                        textHaloWidth(2f)));
 
         style.addLayer(new CircleLayer(MARKS_LAYER, SRC_MARKS).withProperties(
                 circleRadius(8f),
@@ -135,11 +172,17 @@ public final class MapOverlays {
         // joined by a dashed line (role=link). Drawn on top of everything.
         probe = new GeoJsonSource(SRC_PROBE);
         style.addSource(probe);
+        style.addLayer(new LineLayer("ov-probe-link-casing", SRC_PROBE)
+                .withFilter(eq(get("role"), literal("link")))
+                .withProperties(
+                        lineColor("#FFFFFF"),
+                        lineWidth(5f),
+                        lineCap(Property.LINE_CAP_ROUND)));
         style.addLayer(new LineLayer("ov-probe-link", SRC_PROBE)
                 .withFilter(eq(get("role"), literal("link")))
                 .withProperties(
                         lineColor("#0B5A8C"),
-                        lineWidth(2f),
+                        lineWidth(2.5f),
                         lineDasharray(new Float[]{1.5f, 1.5f})));
         style.addLayer(new CircleLayer("ov-probe-hit", SRC_PROBE)
                 .withFilter(eq(get("role"), literal("hit")))
@@ -234,7 +277,10 @@ public final class MapOverlays {
         marks.setGeoJson(FeatureCollection.fromFeatures(features));
     }
 
-    public void setMeasure(List<LatLng> points) {
+    /**
+     * @param legLabels text for each leg (points.size() - 1 entries), or null for none
+     */
+    public void setMeasure(List<LatLng> points, List<String> legLabels) {
         if (measure == null) return;
         List<Feature> features = new ArrayList<>();
         List<Point> pts = new ArrayList<>(points.size());
@@ -243,7 +289,12 @@ public final class MapOverlays {
             pts.add(pt);
             features.add(Feature.fromGeometry(pt));
         }
-        if (pts.size() >= 2) features.add(Feature.fromGeometry(LineString.fromLngLats(pts)));
+        // One feature per leg so each can carry its own distance label.
+        for (int i = 1; i < pts.size(); i++) {
+            Feature leg = Feature.fromGeometry(LineString.fromLngLats(Arrays.asList(pts.get(i - 1), pts.get(i))));
+            if (legLabels != null && i - 1 < legLabels.size()) leg.addStringProperty("label", legLabels.get(i - 1));
+            features.add(leg);
+        }
         measure.setGeoJson(FeatureCollection.fromFeatures(features));
     }
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Centre crosshair for measuring: orange on a white halo so it reads on any chart colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:pathData="M28,4 L28,20 M28,36 L28,52 M4,28 L20,28 M36,28 L52,28"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="5" />
+    <path
+        android:pathData="M28,4 L28,20 M28,36 L28,52 M4,28 L20,28 M36,28 L52,28"
+        android:strokeColor="#E65100"
+        android:strokeLineCap="round"
+        android:strokeWidth="2" />
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M28,24.5 A3.5,3.5 0 1,1 27.99,24.5 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5" />
+</vector>

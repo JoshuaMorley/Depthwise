@@ -17,4 +17,6 @@
     <color name="map_background">#FFEAF3F8</color>
     <color name="recording">#FFD32F2F</color>
     <color name="text_secondary">#FF5A6B75</color>
+    <color name="warning_amber">#FFE65100</color>
+    <color name="good_green">#FF2E7D32</color>
 </resources>

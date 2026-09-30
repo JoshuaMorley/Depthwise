@@ -33,6 +33,15 @@
         <item>5</item>
     </string-array>
 
+    <string-array name="measure_mode_labels">
+        <item>Tap the map</item>
+        <item>Crosshair: drag the map, press Add</item>
+    </string-array>
+    <string-array name="measure_mode_values">
+        <item>tap</item>
+        <item>crosshair</item>
+    </string-array>
+
     <string-array name="track_mode_labels">
         <item>Auto: always record, new track after a break</item>
         <item>Manual: record button</item>

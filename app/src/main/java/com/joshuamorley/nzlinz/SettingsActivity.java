@@ -1,5 +1,7 @@
 package com.joshuamorley.nzlinz;
 
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
@@ -73,6 +75,16 @@ public class SettingsActivity extends AppCompatActivity {
                     showAutoOptions(value.toString());
                     return true;
                 });
+            }
+
+            Preference version = findPreference("app_version");
+            if (version != null) {
+                try {
+                    PackageInfo info = requireContext().getPackageManager()
+                            .getPackageInfo(requireContext().getPackageName(), 0);
+                    version.setSummary(info.versionName + " (build " + info.getLongVersionCode() + ")");
+                } catch (PackageManager.NameNotFoundException ignored) {
+                }
             }
 
             Preference folder = findPreference("charts_folder");

@@ -13,3 +13,16 @@
 .externalNativeBuild
 .cxx
 local.properties
+__pycache__/
+*.pyc
+# Build outputs (incl. Android Studio's "Generate Signed APK" folder)
+/app/release/
+/app/debug/
+*.apk
+*.aab
+*.dm
+# Chart data is large and lives outside the repo
+*.pmtiles
+# Never commit signing keys
+*.keystore
+*.jks

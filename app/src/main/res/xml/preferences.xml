@@ -101,6 +101,23 @@
             app:key="show_depth"
             app:summary="Nearest charted sounding to your position (chart datum, no tide). Red when shallower than draft + margin."
             app:title="Depth" />
+
+        <SwitchPreferenceCompat app:iconSpaceReserved="false"
+            app:defaultValue="true"
+            app:key="show_accuracy"
+            app:summary="Position accuracy. Green 10 m or better, amber up to 30 m, red worse."
+            app:title="GPS accuracy" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:iconSpaceReserved="false" app:title="Measure">
+
+        <ListPreference app:iconSpaceReserved="false"
+            app:defaultValue="tap"
+            app:entries="@array/measure_mode_labels"
+            app:entryValues="@array/measure_mode_values"
+            app:key="measure_mode"
+            app:title="Adding points"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
     <PreferenceCategory app:iconSpaceReserved="false" app:title="Units">
@@ -176,5 +193,10 @@
             app:selectable="false"
             app:summary="Chart depths are relative to chart datum and don't include tide. This app is an aid only, not for primary navigation."
             app:title="Safety" />
+
+        <Preference app:iconSpaceReserved="false"
+            app:key="app_version"
+            app:selectable="false"
+            app:title="Version" />
     </PreferenceCategory>
 </PreferenceScreen>
