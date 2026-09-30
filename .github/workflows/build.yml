@@ -109,10 +109,10 @@ jobs:
           safe=$(echo "${{ steps.version.outputs.name }}" | tr '+/' '__')
           suffix=""
           [ "$type" = "debug" ] && suffix="-debug"
-          out="NZ-LINZ-${safe}${suffix}.apk"
+          out="Depthwise-${safe}${suffix}.apk"
           mkdir -p dist && cp "$src" "dist/$out"
-          # Fixed-name copy so https://github.com/<repo>/releases/latest/download/NZ-LINZ.apk always works.
-          cp "$src" dist/NZ-LINZ.apk
+          # Fixed-name copy so https://github.com/<repo>/releases/latest/download/Depthwise.apk always works.
+          cp "$src" dist/Depthwise.apk
           echo "path=dist/$out" >> "$GITHUB_OUTPUT"
           echo "file=$out" >> "$GITHUB_OUTPUT"
           ls -l dist
@@ -129,6 +129,6 @@ jobs:
         with:
           files: |
             ${{ steps.apk.outputs.path }}
-            dist/NZ-LINZ.apk
+            dist/Depthwise.apk
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}

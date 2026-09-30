@@ -1,11 +1,14 @@
-# NZ-LINZ
+# Depthwise
 
 [![Build APK](https://github.com/JoshuaMorley/NZ-LINZ/actions/workflows/build.yml/badge.svg)](https://github.com/JoshuaMorley/NZ-LINZ/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/JoshuaMorley/NZ-LINZ)](https://github.com/JoshuaMorley/NZ-LINZ/releases/latest)
 
-An offline marine chart app for Android, for New Zealand waters. It draws chart packs built from
-LINZ hydrographic data (PMTiles on the device), with live position, tracks, marks, measuring and a
-shallow-water alarm based on your boat's draft.
+Depthwise is an offline marine chart app for Android, for New Zealand waters. It draws chart packs
+built from LINZ hydrographic data (PMTiles on the device), with live position, tracks, marks,
+measuring and a shallow-water alarm based on your boat's draft.
+
+Depthwise is an independent project. It is not made, endorsed or supported by Toitū Te Whenua
+Land Information New Zealand (LINZ); it uses LINZ open data under the CC BY 4.0 licence.
 
 > **Not for navigation.** Chart data comes from the LINZ Data Service and is not updated with
 > Notices to Mariners. Depths are relative to chart datum and don't include tide. Use official
@@ -13,7 +16,7 @@ shallow-water alarm based on your boat's draft.
 
 ## Download
 
-**[⬇ Download the latest APK](https://github.com/JoshuaMorley/NZ-LINZ/releases/latest/download/NZ-LINZ.apk)**
+**[⬇ Download the latest APK](https://github.com/JoshuaMorley/NZ-LINZ/releases/latest/download/Depthwise.apk)**
 (Android 11 or newer), or pick a version from [Releases](https://github.com/JoshuaMorley/NZ-LINZ/releases).
 
 To install, open the APK on your phone and allow installs from your browser or file manager when asked.
@@ -77,7 +80,7 @@ git tag v1.1.0
 git push origin v1.1.0
 ```
 
-The workflow builds the APK, names it after the version, and attaches it (plus `NZ-LINZ.apk` for the
+The workflow builds the APK, names it after the version, and attaches it (plus `Depthwise.apk` for the
 download link above) to a GitHub Release.
 
 - **versionName** is the tag (`1.1.0`); builds between tags are `1.1.0-dev.<run>+<commit>`

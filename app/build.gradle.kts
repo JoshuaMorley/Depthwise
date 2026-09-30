@@ -11,7 +11,7 @@ val appVersionName = (findProperty("appVersionName") as String?) ?: "0.0.0-dev"
 val keystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
 
 android {
-    namespace = "com.joshuamorley.nzlinz"
+    namespace = "com.joshuamorley.depthwise"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.joshuamorley.nzlinz"
+        applicationId = "com.joshuamorley.depthwise"
         minSdk = 30
         targetSdk = 36
         versionCode = appVersionCode

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NZ LINZ"
+rootProject.name = "Depthwise"
 include(":app")
  

@@ -23,7 +23,7 @@ hauraki/
 - **Charts → Add → Chart pack (.zip)**: a zip of the folder (the folder itself, or its contents, at the zip root).
 - **Charts → Add → Chart pack folder**: pick the folder on the device.
 - **Copy directly**: put the folder in the app's charts folder (path shown in Settings → About), e.g. with
-  `adb push hauraki /sdcard/Android/data/com.joshuamorley.nzlinz/files/charts/`.
+  `adb push hauraki /sdcard/Android/data/com.joshuamorley.depthwise/files/charts/`.
 - **Charts → Add → Remote URL**: a `chartpack.json` URL. Relative paths in it resolve against that URL.
   The config is cached, so the pack still styles offline (tiles still need the network).
 

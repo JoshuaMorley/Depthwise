@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">NZ LINZ</string>
+    <string name="app_name">Depthwise</string>
 
     <string name="settings">Settings</string>
     <string name="gps_no_permission">No location permission</string>

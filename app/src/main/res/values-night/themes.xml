@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- The app is light-only; night mode uses the same light theme. -->
-    <style name="Theme.NZLINZ" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.Depthwise" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/ocean_primary</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorPrimaryContainer">@color/ocean_container</item>
