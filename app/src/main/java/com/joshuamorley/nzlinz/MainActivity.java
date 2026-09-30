@@ -129,7 +129,9 @@ public class MainActivity extends AppCompatActivity implements
 
     private LocationManager locationManager;
     private Location lastLocation;
+    /** Elapsed-realtime of the newest GPS-quality / network-only fix (see isGpsQuality). */
     private long lastGpsFixAt, lastNetworkFixAt;
+    private long locationStartedAt;
     private int satsUsed, satsVisible;
     private View gpsStatus;
     private TextView gpsStatusText, gpsStatusDetail;
@@ -514,18 +516,18 @@ public class MainActivity extends AppCompatActivity implements
 
     @SuppressLint("MissingPermission")
     private void startLocationUpdates() {
+        if (locationStartedAt == 0) locationStartedAt = SystemClock.elapsedRealtime();
         try {
             locationManager.removeUpdates(locationListener);
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0,
-                        locationListener, getMainLooper());
-            }
+            // Raw GPS, plus the fused provider (GPS + Wi-Fi + sensors), which keeps giving smooth
+            // fixes with speed/course when raw GPS drops out indoors. Network is the last resort.
+            // No minimum distance, so fixes keep coming while stationary.
+            requestIfEnabled(LocationManager.GPS_PROVIDER, 1000);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) requestIfEnabled(LocationManager.FUSED_PROVIDER, 1000);
+            requestIfEnabled(LocationManager.NETWORK_PROVIDER, 5000);
             locationManager.registerGnssStatusCallback(ContextCompat.getMainExecutor(this), gnssCallback);
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10,
-                        locationListener, getMainLooper());
-            }
             if (lastLocation == null) {
+                // Show where we last were straight away; it only counts as a fix if it's recent.
                 Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (last == null) last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 if (last != null) onLocation(last);
@@ -534,12 +536,35 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private void requestIfEnabled(String provider, long intervalMs) {
+        if (!locationManager.isProviderEnabled(provider)) return;
+        locationManager.requestLocationUpdates(provider, intervalMs, 0, locationListener, getMainLooper());
+    }
+
+    /** How old a fix is, from its own timestamp. */
+    private static long ageMs(Location loc) {
+        return (SystemClock.elapsedRealtimeNanos() - loc.getElapsedRealtimeNanos()) / 1_000_000;
+    }
+
+    /** GPS-quality: raw GPS, or a fused fix accurate enough that it must be GPS-backed. */
+    private static boolean isGpsQuality(Location loc) {
+        String p = loc.getProvider();
+        if (LocationManager.GPS_PROVIDER.equals(p)) return true;
+        return "fused".equals(p) && loc.hasAccuracy() && loc.getAccuracy() <= 25;
+    }
+
     private void onLocation(@NonNull Location loc) {
-        boolean gps = LocationManager.GPS_PROVIDER.equals(loc.getProvider());
-        long now = SystemClock.elapsedRealtime();
-        if (gps) lastGpsFixAt = now;
-        else lastNetworkFixAt = now;
-        if (!gps && lastGpsFixAt > 0 && now - lastGpsFixAt < 10_000) return; // prefer GPS while it's fresh
+        long age = ageMs(loc);
+        if (age > 30_000 && lastLocation != null) return; // stale cached fix
+        long fixAt = SystemClock.elapsedRealtime() - Math.max(0, age);
+        if (isGpsQuality(loc)) lastGpsFixAt = Math.max(lastGpsFixAt, fixAt);
+        else lastNetworkFixAt = Math.max(lastNetworkFixAt, fixAt);
+        // Keep the current fix if it's still fresh and clearly more accurate than this one.
+        if (lastLocation != null && ageMs(lastLocation) < 5_000 && lastLocation.hasAccuracy() && loc.hasAccuracy()
+                && loc.getAccuracy() > lastLocation.getAccuracy() * 2 + 5) {
+            return;
+        }
         lastLocation = loc;
         if (locationComponentReady) map.getLocationComponent().forceLocationUpdate(loc);
         updateHud(loc);
@@ -568,12 +593,15 @@ public class MainActivity extends AppCompatActivity implements
             }
             title = R.string.gps_weak;
             detail = getString(R.string.gps_weak_detail, Math.round(lastLocation.getAccuracy()));
-        } else if (lastLocation != null && lastNetworkFixAt > 0 && now - lastNetworkFixAt < 60_000) {
+        } else if (lastLocation != null && lastNetworkFixAt > 0 && now - lastNetworkFixAt < 30_000) {
             title = R.string.gps_approx;
             detail = getString(R.string.gps_approx_detail, Math.round(lastLocation.getAccuracy()));
         } else if (lastGpsFixAt > 0) {
             title = R.string.gps_lost;
             detail = getString(R.string.gps_lost_detail, Geo.formatDuration(now - lastGpsFixAt));
+        } else if (now - locationStartedAt < 15_000) {
+            // A fix normally arrives within a few seconds of opening the app; don't alarm before then.
+            title = R.string.gps_starting;
         } else {
             title = R.string.gps_searching;
             detail = satsVisible > 0 ? getString(R.string.gps_searching_detail, satsUsed, satsVisible)
@@ -598,9 +626,7 @@ public class MainActivity extends AppCompatActivity implements
 
     /** GPS cell: ±accuracy of the current fix, coloured by quality; "--" when there's no fresh fix. */
     private void updateAccuracy() {
-        long now = SystemClock.elapsedRealtime();
-        long lastFix = Math.max(lastGpsFixAt, lastNetworkFixAt);
-        if (lastLocation == null || !lastLocation.hasAccuracy() || lastFix == 0 || now - lastFix > 10_000) {
+        if (lastLocation == null || !lastLocation.hasAccuracy() || ageMs(lastLocation) > 10_000) {
             hudAccuracy.setText("--");
             hudAccuracy.setTextColor(ContextCompat.getColor(this, R.color.ocean_on_container));
             return;
@@ -662,6 +688,18 @@ public class MainActivity extends AppCompatActivity implements
                 boatDepthShallow || alarmActive ? R.color.recording : R.color.ocean_on_container));
     }
 
+    /** Width of an instrument cell's widest normal reading, measured in its own text style. */
+    private int cellWidth(View box) {
+        String sample;
+        int id = box.getId();
+        if (id == R.id.hudSpeedBox) sample = "kmh".equals(prefs.speedUnits()) ? "88.8 km/h" : "88.8 kn";
+        else if (id == R.id.hudCourseBox) sample = "888°T";
+        else if (id == R.id.hudDepthBox) sample = "88.8 m";
+        else sample = "±888 m";
+        TextView value = (TextView) ((ViewGroup) box).getChildAt(1);
+        return (int) Math.ceil(value.getPaint().measureText(sample)) + value.getPaddingStart() + value.getPaddingEnd();
+    }
+
     /** Shows the instrument cells chosen in settings; hides the card if none are. */
     private void applyHudPrefs() {
         View[] boxes = {findViewById(R.id.hudSpeedBox), findViewById(R.id.hudCourseBox),
@@ -678,14 +716,25 @@ public class MainActivity extends AppCompatActivity implements
         // Phones can't fit four cells across, so use a 2x2 grid there.
         boolean grid = !getResources().getBoolean(R.bool.is_tablet) && visible.size() > 3;
         int perRow = grid ? 2 : visible.size();
+
+        // Fixed cell widths, sized for the widest normal reading, so the card doesn't
+        // resize as values change (e.g. "--" -> "150°T"). Grid columns share a width.
+        int[] widths = new int[visible.size()];
+        for (int i = 0; i < visible.size(); i++) widths[i] = cellWidth(visible.get(i));
+        if (grid) {
+            for (int col = 0; col < perRow; col++) {
+                int w = 0;
+                for (int i = col; i < visible.size(); i += perRow) w = Math.max(w, widths[i]);
+                for (int i = col; i < visible.size(); i += perRow) widths[i] = w;
+            }
+        }
         for (int i = 0; i < visible.size(); i++) {
             View box = visible.get(i);
             boolean firstInRow = i % Math.max(1, perRow) == 0;
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.setMarginStart(firstInRow ? 0 : dp(18));
-            // Line the grid's columns up.
-            box.setMinimumWidth(grid && firstInRow ? dp(112) : 0);
+            box.setMinimumWidth(widths[i]);
             (i < perRow ? row1 : row2).addView(box, lp);
         }
         row2.setVisibility(grid ? View.VISIBLE : View.GONE);

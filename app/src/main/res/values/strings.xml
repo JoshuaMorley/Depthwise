@@ -7,6 +7,7 @@
     <string name="gps_off">Location is off</string>
     <string name="gps_off_detail">Tap to open location settings</string>
     <string name="gps_searching">No GPS fix</string>
+    <string name="gps_starting">Getting GPS fix…</string>
     <string name="gps_searching_detail">Searching · %1$d of %2$d satellites in use</string>
     <string name="gps_searching_nosats">Searching for satellites. Needs a clear view of the sky.</string>
     <string name="gps_lost">GPS signal lost</string>
